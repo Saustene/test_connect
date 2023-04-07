@@ -1,0 +1,70 @@
+- hosts: aruba
+  collections:
+    - arubanetworks.aos_switch
+  tasks:
+    - name: Create VLAN 700
+      arubaoss_vlan:
+        vlan_id: 700
+        name: "CONNECT"
+        config: "create"
+        command: config_vlan
+    - name: Config interface  trunk
+      arubaoss_vlan:
+        vlan_id: 700
+        config: "create"
+        command: config_vlan_port
+        port_id: "Trk1"
+        port_mode: "POM_TAGGED_STATIC"
+    - name: Config interface  25
+      arubaoss_vlan:
+        vlan_id: 700
+        config: "create"
+        command: config_vlan_port
+        port_id: "25"
+        port_mode: "POM_UNTAGGED"
+
+- name: VLAN Automation with Ansible on HP Com7 Devices
+  hosts: hpe
+  gather_facts: no
+  connection: local
+
+  tasks:
+
+    - name: ensure VLAN 700 exists
+      comware_vlan: vlanid=700 name=CONNECT descr=TEST_3 username={{ ansible_ssh_user }} password={{ ansible_ssh_pass }} hostname={{ inventory_hostname }}
+    - name: Configuration of interface
+      comware_switchport: link_type=trunk name=Bridge-aggregation2 permitted_vlans="101,501,700,1070" username={{ ansible_ssh_user }} password={{ ansible_ssh_pass }} hostname={{ inventory_hostname }}
+    - name: Configuration of interface
+      comware_switchport: link_type=trunk name=Bridge-aggregation1 permitted_vlans="101,501,700,1070" username={{ ansible_ssh_user }} password={{ ansible_ssh_pass }} hostname={{ inventory_hostname }}
+
+
+
+- name: VLAN
+  hosts: huawei
+  connection: network_cli
+  gather_facts: no
+
+  tasks:
+    - name: CREATE VLAN 700
+      cli_command:
+          command: |
+            system-view
+            vlan 700
+            description CONNECT
+            quit
+    - name: Interface ETH TRUNK1
+      cli_command:
+          command: |
+            system-view
+            interface Eth-Trunk1
+            port link-type trunk
+            port trunk allow-pass vlan 700
+            quit
+    - name: Interface GigaEth
+      cli_command:
+          command: |
+            system-view
+            interface GigabitEthernet1/0/6
+            port link-type access
+            port default vlan 700
+            quit
